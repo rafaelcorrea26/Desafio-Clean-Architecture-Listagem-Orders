@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: orders
+      MYSQL_PASSWORD: root
+    ports:
+      - 3306:3306
+    volumes:
+      - .docker/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  migrate:
+    image: migrate/migrate:v4.15.2
+    container_name: migrate
+    volumes:
+      - ./sql/migrations:/migrations
+    command: ["-path=/migrations", "-database=mysql://root:root@tcp(mysql:3306)/orders", "-verbose", "up"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  ordersystem:
+    build: .
+    container_name: ordersystem
+    restart: always
+    environment:
+      DB_HOST: mysql
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - 8000:8000
+      - 50051:50051
+      - 8080:8080
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy

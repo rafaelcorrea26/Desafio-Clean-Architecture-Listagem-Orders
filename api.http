@@ -1,0 +1,34 @@
+POST http://localhost:8000/order HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+
+{
+    "id":"a",
+    "price": 100.5,
+    "tax": 0.5
+}
+
+###
+
+GET http://localhost:8000/order HTTP/1.1
+Host: localhost:8000
+
+###
+
+POST http://localhost:8080/query HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+    "query": "mutation { createOrder(input: {id: \"b\", Price: 200.5, Tax: 1.5}) { id Price Tax FinalPrice } }"
+}
+
+###
+
+POST http://localhost:8080/query HTTP/1.1
+Host: localhost:8080
+Content-Type: application/json
+
+{
+    "query": "query { ListOrders { id Price Tax FinalPrice } }"
+}
